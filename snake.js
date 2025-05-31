@@ -5,6 +5,7 @@ let count = 0;
 let snake = { x: 160, y: 160, dx: grid, dy: 0, cells: [], maxCells: 1 };
 let apple = { x: 320, y: 320 };
 let score = 0;
+let gameOver = false;
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
@@ -20,9 +21,24 @@ function resetGame() {
   apple.x = getRandomInt(0, 20) * grid;
   apple.y = getRandomInt(0, 20) * grid;
   score = 0;
+  gameOver = false;
+  document.getElementById('restart-btn').style.display = 'none';
+  requestAnimationFrame(gameLoop);
+}
+
+function showMissionClear() {
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#0f0';
+  ctx.font = '32px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('MISSION CLEAR!', canvas.width/2, canvas.height/2);
+  document.getElementById('restart-btn').style.display = 'block';
+  gameOver = true;
 }
 
 function gameLoop() {
+  if (gameOver) return;
   requestAnimationFrame(gameLoop);
   if (++count < 4) return;
   count = 0;
@@ -58,15 +74,8 @@ function gameLoop() {
     apple.x = getRandomInt(0, 20) * grid;
     apple.y = getRandomInt(0, 20) * grid;
     if (score === 10) {
-      setTimeout(() => {
-        ctx.fillStyle = 'rgba(0,0,0,0.7)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#0f0';
-        ctx.font = '32px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('MISSION CLEAR!', canvas.width/2, canvas.height/2);
-      }, 100);
-      setTimeout(resetGame, 2000);
+      showMissionClear();
+      return;
     }
   }
 
@@ -76,6 +85,7 @@ function gameLoop() {
 }
 
 document.addEventListener('keydown', function(e) {
+  if (gameOver) return;
   if (e.key === 'ArrowLeft' && snake.dx === 0) {
     snake.dx = -grid;
     snake.dy = 0;
@@ -91,5 +101,8 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
+function restartGame() {
+  resetGame();
+}
+
 resetGame();
-gameLoop();
