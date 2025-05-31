@@ -1,46 +1,79 @@
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const grid = 20;
-let snake = { x: 160, y: 160, dx: grid, dy: 0, cells: [], maxCells: 1 };
-let apple = { x: 320, y: 320 };
-let score = 0;
-let gameOver = false;
-let lastTime = 0;
+let snake, apple, score, gameOver, missionClear, started, lastTime;
 const speed = 100; // ms per frame
+let directionQueue = [];
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
 }
 
-function resetGame() {
-  snake.x = 160;
-  snake.y = 160;
-  snake.dx = grid;
-  snake.dy = 0;
-  snake.cells = [];
-  snake.maxCells = 1;
-  apple.x = getRandomInt(0, 20) * grid;
-  apple.y = getRandomInt(0, 20) * grid;
+function initGame() {
+  snake = { x: 160, y: 160, dx: grid, dy: 0, cells: [], maxCells: 1, lastDir: 'ArrowRight' };
+  apple = { x: getRandomInt(0, 20) * grid, y: getRandomInt(0, 20) * grid };
   score = 0;
   gameOver = false;
+  missionClear = false;
+  started = false;
   lastTime = 0;
+  directionQueue = [];
   document.getElementById('restart-btn').style.display = 'none';
+  document.getElementById('start-btn').style.display = 'block';
+}
+
+function startGame() {
+  if (started) return;
+  started = true;
+  missionClear = false;
+  gameOver = false;
+  document.getElementById('start-btn').style.display = 'none';
+  document.getElementById('restart-btn').style.display = 'none';
+  snake = { x: 160, y: 160, dx: grid, dy: 0, cells: [], maxCells: 1, lastDir: 'ArrowRight' };
+  apple = { x: getRandomInt(0, 20) * grid, y: getRandomInt(0, 20) * grid };
+  score = 0;
+  lastTime = 0;
+  directionQueue = [];
   window.requestAnimationFrame(gameLoop);
 }
 
-function showMissionClear() {
+function restartGame() {
+  started = true;
+  missionClear = false;
+  gameOver = false;
+  document.getElementById('restart-btn').style.display = 'none';
+  snake = { x: 160, y: 160, dx: grid, dy: 0, cells: [], maxCells: 1, lastDir: 'ArrowRight' };
+  apple = { x: getRandomInt(0, 20) * grid, y: getRandomInt(0, 20) * grid };
+  score = 0;
+  lastTime = 0;
+  directionQueue = [];
+  window.requestAnimationFrame(gameLoop);
+}
+
+function showMessage(msg, color = '#0f0') {
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#0f0';
+  ctx.fillStyle = color;
   ctx.font = '32px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('MISSION CLEAR!', canvas.width/2, canvas.height/2);
-  document.getElementById('restart-btn').style.display = 'block';
-  gameOver = true;
+  ctx.fillText(msg, canvas.width/2, canvas.height/2);
 }
 
 function gameLoop(timestamp) {
-  if (gameOver) return;
+  if (!started) {
+    showMessage('게임을 시작하려면 버튼을 누르세요', '#0f0');
+    return;
+  }
+  if (gameOver) {
+    showMessage('GAME OVER', '#f00');
+    document.getElementById('restart-btn').style.display = 'block';
+    return;
+  }
+  if (missionClear) {
+    showMessage('MISSION CLEAR!', '#0f0');
+    document.getElementById('restart-btn').style.display = 'block';
+    return;
+  }
   if (!lastTime) lastTime = timestamp;
   const delta = timestamp - lastTime;
   if (delta < speed) {
@@ -49,6 +82,20 @@ function gameLoop(timestamp) {
   }
   lastTime = timestamp;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // 방향 전환 처리
+  if (directionQueue.length > 0) {
+    const dir = directionQueue.shift();
+    if (dir === 'ArrowLeft' && snake.lastDir !== 'ArrowRight') {
+      snake.dx = -grid; snake.dy = 0; snake.lastDir = 'ArrowLeft';
+    } else if (dir === 'ArrowUp' && snake.lastDir !== 'ArrowDown') {
+      snake.dy = -grid; snake.dx = 0; snake.lastDir = 'ArrowUp';
+    } else if (dir === 'ArrowRight' && snake.lastDir !== 'ArrowLeft') {
+      snake.dx = grid; snake.dy = 0; snake.lastDir = 'ArrowRight';
+    } else if (dir === 'ArrowDown' && snake.lastDir !== 'ArrowUp') {
+      snake.dy = grid; snake.dx = 0; snake.lastDir = 'ArrowDown';
+    }
+  }
 
   snake.x += snake.dx;
   snake.y += snake.dy;
@@ -66,7 +113,10 @@ function gameLoop(timestamp) {
     ctx.fillRect(cell.x, cell.y, grid - 2, grid - 2);
     for (let j = i + 1; j < snake.cells.length; j++) {
       if (cell.x === snake.cells[j].x && cell.y === snake.cells[j].y) {
-        resetGame();
+        gameOver = true;
+        document.getElementById('restart-btn').style.display = 'block';
+        showMessage('GAME OVER', '#f00');
+        return;
       }
     }
   });
@@ -80,7 +130,9 @@ function gameLoop(timestamp) {
     apple.x = getRandomInt(0, 20) * grid;
     apple.y = getRandomInt(0, 20) * grid;
     if (score === 10) {
-      showMissionClear();
+      missionClear = true;
+      document.getElementById('restart-btn').style.display = 'block';
+      showMessage('MISSION CLEAR!', '#0f0');
       return;
     }
   }
@@ -94,24 +146,18 @@ function gameLoop(timestamp) {
 }
 
 document.addEventListener('keydown', function(e) {
-  if (gameOver) return;
-  if (e.key === 'ArrowLeft' && snake.dx === 0) {
-    snake.dx = -grid;
-    snake.dy = 0;
-  } else if (e.key === 'ArrowUp' && snake.dy === 0) {
-    snake.dy = -grid;
-    snake.dx = 0;
-  } else if (e.key === 'ArrowRight' && snake.dx === 0) {
-    snake.dx = grid;
-    snake.dy = 0;
-  } else if (e.key === 'ArrowDown' && snake.dy === 0) {
-    snake.dy = grid;
-    snake.dx = 0;
+  if (!started || gameOver || missionClear) return;
+  if (["ArrowLeft","ArrowUp","ArrowRight","ArrowDown"].includes(e.key)) {
+    directionQueue.push(e.key);
   }
 });
 
-function restartGame() {
-  resetGame();
+function mobileInput(dir) {
+  if (!started || gameOver || missionClear) return;
+  directionQueue.push(dir);
 }
 
-resetGame();
+initGame();
+window.startGame = startGame;
+window.restartGame = restartGame;
+window.mobileInput = mobileInput;
