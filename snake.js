@@ -2,7 +2,7 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const grid = 20;
 let count = 0;
-let snake = { x: 160, y: 160, dx: grid, dy: 0, cells: [], maxCells: 4 };
+let snake = { x: 160, y: 160, dx: grid, dy: 0, cells: [], maxCells: 1 };
 let apple = { x: 320, y: 320 };
 let score = 0;
 
@@ -16,7 +16,7 @@ function resetGame() {
   snake.dx = grid;
   snake.dy = 0;
   snake.cells = [];
-  snake.maxCells = 4;
+  snake.maxCells = 1;
   apple.x = getRandomInt(0, 20) * grid;
   apple.y = getRandomInt(0, 20) * grid;
   score = 0;
@@ -57,6 +57,17 @@ function gameLoop() {
     score++;
     apple.x = getRandomInt(0, 20) * grid;
     apple.y = getRandomInt(0, 20) * grid;
+    if (score === 10) {
+      setTimeout(() => {
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#0f0';
+        ctx.font = '32px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('MISSION CLEAR!', canvas.width/2, canvas.height/2);
+      }, 100);
+      setTimeout(resetGame, 2000);
+    }
   }
 
   ctx.fillStyle = '#fff';
