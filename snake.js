@@ -1,11 +1,12 @@
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const grid = 20;
-let count = 0;
 let snake = { x: 160, y: 160, dx: grid, dy: 0, cells: [], maxCells: 1 };
 let apple = { x: 320, y: 320 };
 let score = 0;
 let gameOver = false;
+let lastTime = 0;
+const speed = 100; // ms per frame
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
@@ -22,8 +23,9 @@ function resetGame() {
   apple.y = getRandomInt(0, 20) * grid;
   score = 0;
   gameOver = false;
+  lastTime = 0;
   document.getElementById('restart-btn').style.display = 'none';
-  requestAnimationFrame(gameLoop);
+  window.requestAnimationFrame(gameLoop);
 }
 
 function showMissionClear() {
@@ -37,11 +39,15 @@ function showMissionClear() {
   gameOver = true;
 }
 
-function gameLoop() {
+function gameLoop(timestamp) {
   if (gameOver) return;
-  requestAnimationFrame(gameLoop);
-  if (++count < 4) return;
-  count = 0;
+  if (!lastTime) lastTime = timestamp;
+  const delta = timestamp - lastTime;
+  if (delta < speed) {
+    window.requestAnimationFrame(gameLoop);
+    return;
+  }
+  lastTime = timestamp;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   snake.x += snake.dx;
@@ -81,7 +87,10 @@ function gameLoop() {
 
   ctx.fillStyle = '#fff';
   ctx.font = '16px Arial';
-  ctx.fillText('Score: ' + score, 10, 390);
+  ctx.textAlign = 'left';
+  ctx.fillText('Score: ' + score, 10, 395);
+
+  window.requestAnimationFrame(gameLoop);
 }
 
 document.addEventListener('keydown', function(e) {
